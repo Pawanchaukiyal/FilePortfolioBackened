@@ -1,15 +1,11 @@
 const Project = require("../models/project.model");
 
+// 🔹 Create Project
 exports.createProject = async (req, res) => {
   try {
-    const {
-      name,
-      status,
-      category,
-      tags,
-      description,
-    } = req.body;
+    const { name, status, category, tags, description } = req.body;
 
+    // With Cloudinary uploads, req.files properties will contain Cloudinary URLs in the "path"
     const image = req.files?.image?.[0]?.path || "";
     const video = req.files?.video?.[0]?.path || "";
     const file = req.files?.file?.[0]?.path;
@@ -18,7 +14,7 @@ exports.createProject = async (req, res) => {
       return res.status(400).json({ message: "File is required" });
     }
 
-    // Creating project instance
+    // Creating project instance with Cloudinary URLs
     const project = new Project({
       name,
       image,
@@ -28,71 +24,53 @@ exports.createProject = async (req, res) => {
       category,
       tags: tags ? tags.split(",") : [],
       description,
-      createdBy: req.user.userId,  // Ensure userId is passed correctly
+      createdBy: req.user.userId,  // Ensure userId is passed via authentication
     });
 
-    // Save the project
+    // Save the project to the database
     await project.save();
 
-    // Return response
+    // Return response with the saved project data
     res.status(201).json({
       message: "Project created successfully",
-      project: project.toObject(), // Converting Mongoose document to plain object
+      project: project.toObject(), // Convert Mongoose document to plain object
     });
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-
-
 // 🔹 Get All Projects
 exports.getAllProjects = async (req, res) => {
   try {
-      const projects = await Project.find().populate("createdBy", "email");
-      res.json(projects);
-  } catch (error) {
-      res.status(500).json({ message: "❌ Error: " + error.message });
-  }
-};
-
-// 🔹 Search Projects by Name
-// exports.searchProjects = async (req, res) => {
-//   try {
-//       const { name } = req.query;
-//       const projects = await Project.find({ name: { $regex: name, $options: "i" } });
-//       res.json(projects);
-//   } catch (error) {
-//       res.status(500).json({ message: "❌ Error: " + error.message });
-//   }
-// };
-// 🔹 Search Projects by Name and Tag
-exports.searchProjects = async (req, res) => {
-  try {
-    const { name, tag } = req.query;
-
-    // Build query object dynamically based on the input parameters
-    const query = {};
-
-    if (name) {
-      query.name = { $regex: name, $options: "i" }; // Case-insensitive search by name
-    }
-
-    if (tag) {
-      query.tags = { $in: [tag] }; // Search for projects containing the tag
-    }
-
-    // Find projects based on the query
-    const projects = await Project.find(query);
-
+    const projects = await Project.find().populate("createdBy", "email");
     res.json(projects);
   } catch (error) {
     res.status(500).json({ message: "❌ Error: " + error.message });
   }
 };
 
-// 🔹 Update Project (Only Owner or Admin)
+// 🔹 Search Projects by Name and Tag
+exports.searchProjects = async (req, res) => {
+  try {
+    const { name, tag } = req.query;
+    const query = {};
+
+    if (name) {
+      query.name = { $regex: name, $options: "i" }; // Case-insensitive name search
+    }
+
+    if (tag) {
+      query.tags = { $in: [tag] }; // Matches projects containing the provided tag
+    }
+
+    const projects = await Project.find(query);
+    res.json(projects);
+  } catch (error) {
+    res.status(500).json({ message: "❌ Error: " + error.message });
+  }
+};
+
 // 🔹 Update Project (Only Owner or Admin)
 exports.updateProject = async (req, res) => {
   try {
@@ -101,23 +79,21 @@ exports.updateProject = async (req, res) => {
       return res.status(404).json({ message: "❌ Project not found" });
     }
 
-    // 🛡️ Access control: only owner or admin
-    if (!project.createdBy.equals(req.user.userId) && req.user.role !== "admin")
-    {
+    // Allow only project owner or admin to update
+    if (!project.createdBy.equals(req.user.userId) && req.user.role !== "admin") {
       return res.status(403).json({ message: "⛔ Access Denied" });
     }
 
-    // 📝 Get form fields
     const { name, status, category, tags, description } = req.body;
 
-    // ✅ Update text fields
+    // Update text fields if provided
     project.name = name || project.name;
     project.status = status || project.status;
     project.category = category || project.category;
     project.tags = tags ? tags.split(",") : project.tags;
     project.description = description || project.description;
 
-    // ✅ Update uploaded files if present
+    // Update uploaded files (Cloudinary URLs will be returned in req.files)
     if (req.files?.image?.[0]) {
       project.image = req.files.image[0].path;
     }
@@ -128,7 +104,7 @@ exports.updateProject = async (req, res) => {
       project.file = req.files.file[0].path;
     }
 
-    // 💾 Save changes
+    // Save the updated project
     await project.save();
 
     res.json({ message: "✅ Project updated successfully", project });
@@ -137,34 +113,34 @@ exports.updateProject = async (req, res) => {
   }
 };
 
-
 // 🔹 Delete Project (Only Owner or Admin)
 exports.deleteProject = async (req, res) => {
   try {
-      const project = await Project.findById(req.params.id);
-      if (!project) return res.status(404).json({ message: "❌ Project not found" });
+    const project = await Project.findById(req.params.id);
+    if (!project)
+      return res.status(404).json({ message: "❌ Project not found" });
 
-      if (!project.createdBy.equals(req.user.userId) && req.user.role !== "admin")
-      {
-          return res.status(403).json({ message: "⛔ Access Denied" });
-      }
+    if (!project.createdBy.equals(req.user.userId) && req.user.role !== "admin") {
+      return res.status(403).json({ message: "⛔ Access Denied" });
+    }
 
-      await Project.findByIdAndDelete(req.params.id);
-      res.json({ message: "✅ Project deleted successfully" });
+    await Project.findByIdAndDelete(req.params.id);
+    res.json({ message: "✅ Project deleted successfully" });
   } catch (error) {
-      res.status(500).json({ message: "❌ Error: " + error.message });
+    res.status(500).json({ message: "❌ Error: " + error.message });
   }
 };
 
 // 🔹 Get Single Project (Admin Access)
 exports.getProjectById = async (req, res) => {
   try {
-      const project = await Project.findById(req.params.id).populate("createdBy", "email");
-      if (!project) return res.status(404).json({ message: "❌ Project not found" });
+    const project = await Project.findById(req.params.id).populate("createdBy", "email");
+    if (!project)
+      return res.status(404).json({ message: "❌ Project not found" });
 
-      res.json(project);
+    res.json(project);
   } catch (error) {
-      res.status(500).json({ message: "❌ Error: " + error.message });
+    res.status(500).json({ message: "❌ Error: " + error.message });
   }
 };
 
