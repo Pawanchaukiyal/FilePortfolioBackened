@@ -1,15 +1,19 @@
-// For CommonJS syntax
+// ✅ frontCors.js
 const dotenv = require('dotenv');
 dotenv.config();
 
+const allowedOrigins = [
+  process.env.frontend_url,              // https://fileportfolio.vercel.app
+  'https://fileportfolio.vercel.app',   // hardcoded backup
+];
+
 const corsOptions = {
   origin: function (origin, callback) {
-    const isAllowed =
-      !origin ||
-      origin === process.env.frontend_url ||
-      origin.endsWith('.vercel.app');
-
-    callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
