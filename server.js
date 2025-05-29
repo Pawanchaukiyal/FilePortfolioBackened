@@ -20,7 +20,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use("/api/auth", require("./routes/user.route"));
 app.use("/api/projects", require("./routes/project.route"));
 app.use("/api/contact", require("./routes/contact.route"));
-
+app.use("/api/freelance", require("./routes/freelanceProject.route"));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
