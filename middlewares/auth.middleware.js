@@ -13,3 +13,26 @@ module.exports = (req, res, next) => {
         res.status(400).json({ message: "Invalid Token" });
     }
 };
+
+exports.updateFreelancerProfile = async (req, res) => {
+  try {
+    const { skills, bio, pricePerProject } = req.body;
+
+    const updated = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        skills,
+        bio,
+        pricePerProject,
+        isFreelancer: true,
+      },
+      { new: true }
+    );
+
+    res.json({ message: "Freelancer profile updated", user: updated });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update freelancer profile" });
+  }
+};
+
+

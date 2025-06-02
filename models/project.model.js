@@ -14,6 +14,9 @@ const ProjectSchema = new mongoose.Schema({
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     ratings: [{ user: mongoose.Schema.Types.ObjectId, rating: Number }],
     comments: [{ user: mongoose.Schema.Types.ObjectId, comment: String }],
+    status: { type: String, enum: ['Open', 'In Progress', 'Done'], default: 'Open' },
+    takenBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } 
+
 });
 
 module.exports = mongoose.model("Project", ProjectSchema);

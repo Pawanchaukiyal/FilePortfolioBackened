@@ -1,19 +1,28 @@
 const express = require('express');
 const router = express.Router();
-const upload = require("../middlewares/freelance.middleware");
-const freelanceController = require('../controllers/freelanceProject.controller');
-const authMiddleware = require('../middlewares/auth.middleware');
+const upload = require('../middlewares/freelance.middleware');
+const auth = require('../middlewares/auth.middleware');
+const controller = require('../controllers/freelanceProject.controller');
 
-// POST: Create project (with file upload via Cloudinary) — protected
-router.post('/create', authMiddleware, upload.single('file'), freelanceController.createProject);
+// Create project
+router.post('/create', auth, upload.single('file'), controller.createProject);
 
-// GET: Get all projects — public
-router.get('/all', freelanceController.getAllProjects);
+// All projects
+router.get('/all', controller.getAllProjects);
 
-// GET: Get a specific project by ID — public
-router.get('/:id', freelanceController.getProjectById);
+// One project
+router.get('/:id', controller.getProjectById);
 
-// DELETE: Delete a project by ID — protected
-router.delete('/:id', authMiddleware, freelanceController.deleteProject);
+// Delete project
+router.delete('/:id', auth, controller.deleteProject);
+
+// Freelancer takes a project
+router.patch('/:id/take', auth, controller.takeProject);
+
+// Freelancer completes a project
+router.patch('/:id/complete', auth, controller.completeProject);
+
+// My taken projects
+router.get('/my/projects', auth, controller.getMyProjects);
 
 module.exports = router;
